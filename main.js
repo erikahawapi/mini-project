@@ -35,15 +35,15 @@ const cameraViews = {
         target: { x: 7.5, y: 2.2, z: 0 }
     },
     [STATE_FLOOR1_LOBBY]: {
-        position: { x: 0, y: 2, z: -10 },
-        target: { x: 0, y: 2, z: -20 }
+        position: { x: 0, y: 2, z: -2 },
+        target: { x: 0, y: 2, z: -10 }
     },
     [STATE_FLOOR1_COUNTER]: {
         position: { x: -6, y: 2, z: -6 },
         target: { x: -10, y: 2, z: -10 }
     },
     [STATE_FLOOR1_STUDY]: {
-        position: { x: 0, y: 0, z: -25 },
+        position: { x: 0, y: 2, z: -25 },
         target: { x: 0, y: 2, z: -40 }
     },
     [STATE_FLOOR2_GALLERY]: {
@@ -265,7 +265,7 @@ function load3DModels() {
     const loader = new THREE.GLTFLoader(loadingManager);
 
     loader.load(
-        'assets/models/PRZS_Completed.glb',
+        'assets/models/PRZS.glb',
         (gltf) => {
             const model = gltf.scene;
             
@@ -360,11 +360,9 @@ function load3DModels() {
                 doorMeshes[0].getWorldPosition(doorPosition);
                 console.log("Dynamically captured correct door coordinates:", doorPosition);
                 
+
                 cameraViews[STATE_ENTRANCE].position = { x: doorPosition.x, y: doorPosition.y + 0.2, z: doorPosition.z + 3.2 };
                 cameraViews[STATE_ENTRANCE].target = { x: doorPosition.x, y: doorPosition.y + 0.2, z: doorPosition.z };
-
-                cameraViews[STATE_FLOOR1_LOBBY].position = { x: doorPosition.x, y: doorPosition.y + 0.2, z: doorPosition.z - 1 };
-                cameraViews[STATE_FLOOR1_LOBBY].target = { x: doorPosition.x, y: doorPosition.y + 0.2, z: doorPosition.z - 15 };
             }
         },
         undefined,
