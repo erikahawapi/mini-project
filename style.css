@@ -1,4 +1,3 @@
-/* CSS Reset and Variables */
 :root {
     --primary-color: #00adb5;
     --primary-hover: #00fff5;
@@ -27,7 +26,7 @@ body, html {
     color: var(--text-main);
 }
 
-/* 3D Canvas */
+
 #three-canvas {
     position: fixed;
     top: 0;
@@ -38,7 +37,7 @@ body, html {
     display: block;
 }
 
-/* Glassmorphic Panel Base */
+
 .glass-panel {
     background: rgba(20, 20, 20, 0.65);
     backdrop-filter: blur(16px);
@@ -49,7 +48,7 @@ body, html {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Landing / Welcome Screen Overlay */
+
 .overlay-screen {
     position: fixed;
     top: 0;
@@ -61,7 +60,7 @@ body, html {
     align-items: center;
     z-index: 10;
     background: radial-gradient(circle at center, rgba(15, 23, 42, 0.25) 0%, rgba(13, 13, 13, 0.85) 90%);
-    backdrop-filter: blur(10px); /* Blurs the entire 3D scene in the background */
+    backdrop-filter: blur(10px); 
     -webkit-backdrop-filter: blur(10px);
     transition: opacity 0.8s ease-in-out;
 }
@@ -142,13 +141,13 @@ body, html {
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(255, 255, 255, 0.05);
     cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Snappy bounce transition */
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
 }
 
 .feature-item:hover {
-    transform: translateY(-4px) scale(1.02); /* Pop up vertically and scale up slightly */
-    background: rgba(0, 173, 181, 0.06); /* Add a subtle teal background glow */
-    border-color: rgba(0, 173, 181, 0.3); /* Accent border outline */
+    transform: translateY(-4px) scale(1.02); 
+    background: rgba(0, 173, 181, 0.06); 
+    border-color: rgba(0, 173, 181, 0.3); 
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 10px rgba(0, 173, 181, 0.1);
 }
 
@@ -156,10 +155,10 @@ body, html {
     font-size: 1.2rem;
 }
 
-/* Buttons */
+
 .primary-btn {
-    position: relative; /* Required for absolute positioning of glow overlay */
-    overflow: hidden;   /* Clips the glowing circular gradient inside the button borders */
+    position: relative; 
+    overflow: hidden;   
     background: #008891;
     border: none;
     color: white;
@@ -173,10 +172,10 @@ body, html {
     align-items: center;
     gap: 10px;
     box-shadow: 0 4px 20px rgba(0, 173, 181, 0.3);
-    /* 3D configurations */
+    
     transform-style: preserve-3d;
     perspective: 500px;
-    /* transition transform smoothly to follow mouse updates without lag */
+    
     transition: transform 0.15s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.3s ease;
 }
 
@@ -187,7 +186,7 @@ body, html {
     left: 0;
     width: 100%;
     height: 100%;
-    /* Create a glowing orb centered on CSS variables --mouse-x and --mouse-y */
+    
     background: radial-gradient(
         130px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
         rgba(0, 255, 245, 0.45) 0%,
@@ -196,7 +195,7 @@ body, html {
     );
     opacity: 0;
     transition: opacity 0.3s ease;
-    z-index: 1; /* Renders above background, below text content */
+    z-index: 1; 
     pointer-events: none;
 }
 
@@ -206,10 +205,10 @@ body, html {
 }
 
 .primary-btn:hover::before {
-    opacity: 1; /* Fade in glow on hover */
+    opacity: 1; 
 }
 
-/* Ensure text and SVG arrow stay on top of the glowing background overlay */
+
 .primary-btn > span,
 .primary-btn > svg {
     position: relative;
@@ -219,6 +218,8 @@ body, html {
 .primary-btn:active {
     transform: translateY(0);
 }
+
+
 
 .secondary-btn {
     background: rgba(255, 255, 255, 0.07);
@@ -244,7 +245,7 @@ body, html {
     letter-spacing: 0.5px;
 }
 
-/* UI HUD and Controls (Visible after Start) */
+
 #ui-hud {
     position: fixed;
     top: 0;
@@ -252,10 +253,10 @@ body, html {
     width: 100%;
     height: 100%;
     z-index: 5;
-    pointer-events: none; /* Let clicks pass through to 3D scene where needed */
+    pointer-events: none; 
 }
 
-/* Let panels receive clicks */
+
 .hud-panel, .hud-bar, .modal {
     pointer-events: auto;
 }
@@ -327,7 +328,7 @@ body, html {
     color: #fff;
 }
 
-/* Floor selector buttons */
+
 .floor-buttons {
     display: flex;
     flex-direction: column;
@@ -369,7 +370,7 @@ body, html {
     cursor: not-allowed;
 }
 
-/* Bottom Bar */
+
 .bottom-bar {
     position: absolute;
     bottom: 24px;
@@ -404,7 +405,7 @@ body, html {
     box-shadow: 0 0 8px #00e676;
 }
 
-/* Modals */
+
 .modal {
     position: fixed;
     top: 0;
@@ -422,7 +423,7 @@ body, html {
 .modal-content {
     width: 90%;
     max-width: 900px;
-    padding: 30px;
+    padding: 40px;
     position: relative;
     max-height: 85vh;
     overflow-y: auto;
@@ -430,7 +431,20 @@ body, html {
 }
 
 .photos-content {
-    max-width: 800px;
+    max-width: 900px;
+}
+
+.modal-content h2 {
+    margin-bottom: 16px;
+    color: #fff;
+    font-weight: 700;
+}
+
+.modal-intro {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    line-height: 1.5;
+    margin-bottom: 20px;
 }
 
 @keyframes modalIn {
@@ -466,29 +480,48 @@ body, html {
     border: 1px solid var(--border-light);
     border-radius: 8px;
     padding: 10px;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    cursor: pointer;
+    overflow: hidden;
 }
 
-.photo-placeholder {
-    height: 120px;
+.photo-card:hover {
+    transform: translateY(-6px);
+    border-color: var(--primary-color);
     background: rgba(255, 255, 255, 0.05);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4), 0 0 15px rgba(0, 173, 181, 0.2);
+}
+
+.reference-img {
+    width: 100%;
+    height: 140px;
+    object-fit: cover;
     border-radius: 6px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 0.8rem;
-    color: var(--text-muted);
-    text-align: center;
-    padding: 10px;
+    display: block;
+    background: rgba(255, 255, 255, 0.05);
+    transition: transform 0.3s ease;
+}
+
+.photo-card:hover .reference-img {
+    transform: scale(1.04);
+}
+
+.photo-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #fff;
+    margin-top: 10px;
+    letter-spacing: 0.5px;
 }
 
 .photo-caption {
     font-size: 0.75rem;
     color: var(--text-muted);
-    margin-top: 10px;
+    margin-top: 6px;
     line-height: 1.4;
 }
 
-/* Loading Screen */
+
 #loading-screen {
     position: fixed;
     top: 0;
@@ -529,7 +562,7 @@ body, html {
     to { transform: rotate(360deg); }
 }
 
-/* Utility classes */
+
 .hidden {
     opacity: 0;
     pointer-events: none;
@@ -541,7 +574,7 @@ body, html {
     pointer-events: none;
 }
 
-/* Responsive Rules */
+
 @media (max-width: 768px) {
     .hud-panel {
         width: calc(100% - 48px);
