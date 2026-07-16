@@ -4,17 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PRZS Library - 3D Virtual Tour</title>
-    <!-- Google Fonts for premium typography -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Grotesk:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- 3D Canvas Container -->
     <canvas id="three-canvas"></canvas>
 
-    <!-- Welcome / Landing Screen Overlay -->
     <div id="welcome-screen" class="overlay-screen">
         <div class="welcome-card glass-panel">
             <div class="logo-container">
@@ -45,14 +42,11 @@
         </div>
     </div>
 
-    <!-- UI Hud (Visible once tour starts) -->
     <div id="ui-hud" class="hidden">
-        <!-- Floating Guide & Info Panel (Left Side) -->
         <div class="hud-panel left-panel glass-panel">
-            <h2 class="panel-title">PRZS Directory</h2>
-            <p id="location-desc" class="panel-desc">We are standing at the main plaza outside the library. Click on the <strong>signboard</strong> or the <strong>entrance door</strong> to approach the building.</p>
+            <h2 class="panel-title">PRZS Guide</h2>
+            <p id="location-desc" class="panel-desc">We are standing outside the library. Click on the <strong>building sign</strong> at the top to approach the entrance.</p>
             
-            <!-- Controls Guide -->
             <div class="controls-guide">
                 <h3>Controls</h3>
                 <ul>
@@ -64,70 +58,60 @@
             </div>
         </div>
 
-        <!-- Floating Floor Selector HUD (Right Side) -->
         <div class="hud-panel right-panel glass-panel">
             <h3 class="panel-title">Floor Navigator</h3>
             <div class="floor-buttons">
-                <button id="btn-exterior" class="floor-btn active" data-floor="exterior">Exterior Plaza</button>
-                <button id="btn-lobby" class="floor-btn" data-floor="lobby">1F: Main Lobby</button>
+                <button id="btn-exterior" class="floor-btn active" data-floor="exterior">Exterior Building</button>
+                <button id="btn-lobby" class="floor-btn" data-floor="lobby">1F: Hall</button>
+                <button id="btn-counter" class="floor-btn" data-floor="counter">1F: Registration Counter</button>
                 <button id="btn-study1" class="floor-btn" data-floor="study1">1F: Study Section</button>
-                <button id="btn-floor2" class="floor-btn" data-floor="floor2">2F: Reference Area</button>
+                <button id="btn-gallery" class="floor-btn" data-floor="gallery">2F: Gallery</button>
+                <button id="btn-study2" class="floor-btn" data-floor="study2">2F: Study Section</button>
             </div>
         </div>
 
-        <!-- Bottom Status Bar -->
         <div class="hud-bar bottom-bar glass-panel">
             <div class="status-indicator">
                 <span class="status-dot green"></span>
-                <span id="status-text">Exterior view active</span>
+                <span id="status-text">Exterior Building</span>
             </div>
             <button id="photo-gallery-btn" class="secondary-btn">📷 Reference Photos</button>
         </div>
     </div>
 
-    <!-- Pop-up Information Modal -->
     <div id="info-modal" class="modal hidden">
         <div class="modal-content glass-panel">
             <button id="modal-close" class="close-btn">&times;</button>
             <div id="modal-body">
-                <!-- Dynamic Content Loaded via JS -->
             </div>
         </div>
     </div>
 
-    <!-- Reference Photos Modal -->
     <div id="photos-modal" class="modal hidden">
         <div class="modal-content glass-panel photos-content">
             <button id="photos-close" class="close-btn">&times;</button>
             <h2>Reference Photo Evidence</h2>
-            <p class="modal-intro">Original reference photos captured at UTM Perpustakaan Raja Zarith Sofiah to guide the 3D recreation.</p>
+            <p class="modal-intro">Original reference photos captured at Perpustakaan Raja Zarith Sofiah to guide the 3D recreation.</p>
             <div class="photos-grid">
-                <!-- Add image tags. In production, place your 5 photos here -->
                 <div class="photo-card">
-                    <div class="photo-placeholder">Photo 1: Exterior Facade</div>
+                    <img src="assets/reference/exterior%20building.jpg" alt="Photo 1: Exterior Facade" class="reference-img">
+                    <div class="photo-title">Photo 1: Exterior Facade</div>
                     <p class="photo-caption">Main Building Exterior Facade showing modern glass architectures.</p>
                 </div>
                 <div class="photo-card">
-                    <div class="photo-placeholder">Photo 2: Entrance Lobby</div>
-                    <p class="photo-caption">First floor main lobby containing turnstiles and security counters.</p>
+                    <img src="assets/reference/entrance%20building.png" alt="Photo 2: Entrance Facade" class="reference-img">
+                    <div class="photo-title">Photo 2: Entrance Facade</div>
+                    <p class="photo-caption">Close up of the entrance facade showing concrete canopy structures.</p>
                 </div>
                 <div class="photo-card">
-                    <div class="photo-placeholder">Photo 3: Study Spaces</div>
-                    <p class="photo-caption">Study tables and carrels lining the window partitions.</p>
-                </div>
-                <div class="photo-card">
-                    <div class="photo-placeholder">Photo 4: Bookshelves</div>
-                    <p class="photo-caption">Grid arrangement of bookshelves on the second floor.</p>
-                </div>
-                <div class="photo-card">
-                    <div class="photo-placeholder">Photo 5: Staircase Link</div>
-                    <p class="photo-caption">Central spiral/straight staircase connecting multi-storey spaces.</p>
+                    <img src="assets/reference/entrance%20door.png" alt="Photo 3: Entrance Doors" class="reference-img">
+                    <div class="photo-title">Photo 3: Entrance Doors</div>
+                    <p class="photo-caption">Double glass doors acting as the entrance to the library lobby.</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Loading Screen (While loading GLB files) -->
     <div id="loading-screen" class="hidden">
         <div class="loader-content">
             <div class="spinner"></div>
@@ -136,7 +120,6 @@
         </div>
     </div>
 
-    <!-- CDN Libraries (Three.js, OrbitControls, GLTFLoader, and GSAP) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
