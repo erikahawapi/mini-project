@@ -12,7 +12,6 @@ let currentState = STATE_WORLD;
 let scene, camera, renderer, controls;
 let raycaster, mouse;
 let loadingManager;
-let isCameraAnimating = false;
 
 
 const worldGroup = new THREE.Group();
@@ -161,6 +160,8 @@ function init() {
 
     const dummyTarget = new THREE.Vector3(startView.target.x, startView.target.y, startView.target.z);
     camera.lookAt(dummyTarget);
+    
+    document.getElementById('crosshair').classList.add('hidden');
 
 
     controls.addEventListener('change', () => {
@@ -198,7 +199,6 @@ function init() {
     load3DModels();
 
     window.addEventListener('keydown', (e) => {
-        if (isCameraAnimating) return;
         const key = e.key.toLowerCase();
         if (keys.hasOwnProperty(key)) keys[key] = true;
     });
@@ -224,7 +224,6 @@ function init() {
     });
 
     window.addEventListener('mousedown', (e) => {
-        if (isCameraAnimating) return;
         if (e.button === 0 && document.getElementById('welcome-screen').classList.contains('hidden') &&
             document.getElementById('info-modal').classList.contains('hidden') &&
             document.getElementById('photos-modal').classList.contains('hidden')) {
@@ -274,6 +273,8 @@ function init() {
             }
         }
     }
+
+
 
     window.addEventListener('keydown', (e) => {
         if (e.key === 'c' || e.key === 'C') {
@@ -371,7 +372,7 @@ function load3DModels() {
     const loader = new THREE.GLTFLoader(loadingManager);
 
     loader.load(
-        '../assets/models/PRZS.glb',
+        'assets/models/PRZS.glb',
         (gltf) => {
             const model = gltf.scene;
 
@@ -384,35 +385,14 @@ function load3DModels() {
                     if (child.material) {
                         const matName = child.material.name ? child.material.name.toLowerCase() : "";
                         const meshName = child.name ? child.name.toLowerCase() : "";
-                        
-                        const isFloor = matName.includes('material.192') || 
-                                        matName.includes('material.226') || 
-                                        matName.includes('material.004') || 
-                                        matName.includes('material.005') || 
-                                        matName.includes('material.001') || 
-                                        matName.includes('material.006') || 
-                                        matName.includes('material_14') || 
-                                        meshName.includes('mesh_input');
-                        
-                        if (isFloor) {
-                            child.material = child.material.clone();
-                            child.material.color.setHex(0xffffff);
-                            if (child.material.map) {
-                                child.material.map = null;
-                            }
-                            child.material.roughness = 0.8;
-                            child.material.metalness = 0.0;
-                            child.material.needsUpdate = true;
-                        } else if (
-                            matName.includes('glass') || matName.includes('window') || matName.includes('cermin') || 
+
+
+                        if (matName.includes('glass') || matName.includes('window') || matName.includes('cermin') ||
                             matName.includes('blue') || matName.includes('cyan') || matName.includes('dark_glass') ||
-                            matName.includes('material.020') || matName.includes('material.022') || 
-                            matName.includes('material.023') || matName.includes('material.024') || 
-                            matName.includes('material.019') ||
-                            meshName.includes('glass') || meshName.includes('window') || meshName.includes('cermin') || 
-                            meshName.includes('window_pane') || meshName.includes('panel')
-                        ) {
-                            child.material = child.material.clone();
+                            meshName.includes('glass') || meshName.includes('window') || meshName.includes('cermin') ||
+                            meshName.includes('window_pane') || meshName.includes('panel')) {
+
+
                             child.material.color.setHex(0x00adb5);
                             child.material.roughness = 0.02;
                             child.material.metalness = 0.95;
@@ -487,7 +467,7 @@ function load3DModels() {
             if (doorMeshes.length > 0) {
                 doorMeshes[0].getWorldPosition(doorPosition);
                 console.log("Dynamically captured correct door coordinates:", doorPosition);
-
+                // Removed dynamic entrance override per user request
             }
         },
         undefined,
@@ -592,7 +572,6 @@ function createPlaceholderScene() {
 
 function animateCamera(endPos, endTarget, duration = 2.2, callback = null) {
     if (controls.isLocked) controls.unlock();
-    isCameraAnimating = true;
 
     gsap.to(camera.position, {
         x: endPos.x,
@@ -616,8 +595,12 @@ function animateCamera(endPos, endTarget, duration = 2.2, callback = null) {
             camera.lookAt(dummyTarget);
         },
         onComplete: () => {
-            isCameraAnimating = false;
             if (callback) callback();
+            if (document.getElementById('welcome-screen').classList.contains('hidden') &&
+                document.getElementById('info-modal').classList.contains('hidden') &&
+                document.getElementById('photos-modal').classList.contains('hidden')) {
+                controls.lock();
+            }
         }
     });
 }
@@ -626,7 +609,7 @@ function animateCamera(endPos, endTarget, duration = 2.2, callback = null) {
 function changeState(newState) {
     currentState = newState;
 
-
+    // Keep the main model visible in all states
     worldGroup.visible = true;
     floor1LobbyGroup.visible = true;
     floor1StudyGroup.visible = true;
@@ -662,7 +645,7 @@ function changeState(newState) {
 }
 
 
-
+// onDocumentClick removed
 
 
 function findInteractiveAncestor(object) {
@@ -775,23 +758,23 @@ function updateUIContent() {
             statusText.innerText = "Exterior Building";
             break;
         case STATE_FLOOR1_LOBBY:
-            locDesc.innerHTML = "Welcome to the <strong>Hall</strong>, an open space for events.";
+            locDesc.innerHTML = "Welcome to the 1F: Hall. Here you see the lobby structure and security turnstiles. Choose study areas or check in at the Registration Counter.";
             statusText.innerText = "1F: Hall";
             break;
         case STATE_FLOOR1_COUNTER:
-            locDesc.innerHTML = "We are at the <strong>Registration Counter</strong>. Check in here before entering the library.";
+            locDesc.innerHTML = "We are at the 1F: Registration Counter. Check in here for library guides and research desk assistance.";
             statusText.innerText = "1F: Registration Counter";
             break;
         case STATE_FLOOR1_STUDY:
-            locDesc.innerHTML = "You have entered the <strong>Study Section</strong>, a place to sit comfortably and focus on your work.";
+            locDesc.innerHTML = "You have entered the 1F: Study Section. Find a bookshelf or click the stairs to go up to the 2F Gallery.";
             statusText.innerText = "1F: Study Section";
             break;
         case STATE_FLOOR2_GALLERY:
-            locDesc.innerHTML = "Welcome to the <strong>Gallery</strong>. Examine local UTM archives and history.";
+            locDesc.innerHTML = "Welcome to the 2F: Gallery. Examine local UTM archives, historical layouts, and gallery spaces.";
             statusText.innerText = "2F: Gallery";
             break;
         case STATE_FLOOR2_STUDY:
-            locDesc.innerHTML = "You are now in the <strong>Study Section</strong>. Enjoy study tables by the glass window.";
+            locDesc.innerHTML = "You are now in the 2F: Study Section. Enjoy quiet reading rows and study tables by the glass windows.";
             statusText.innerText = "2F: Study Section";
             break;
     }
@@ -971,7 +954,6 @@ function setupUIEventListeners() {
     const photosClose = document.getElementById('photos-close');
 
     galleryBtn.addEventListener('click', () => {
-        updateReferencePhotosUI();
         photosModal.classList.remove('hidden');
     });
 
@@ -1128,9 +1110,9 @@ function enterLobbyTransition() {
     setTimeout(() => {
         document.getElementById('loading-screen').classList.add('hidden');
 
-        const targetView = cameraViews[STATE_FLOOR2_GALLERY];
+        const targetView = cameraViews[STATE_FLOOR1_LOBBY];
         animateCamera(targetView.position, targetView.target, 1.5, () => {
-            changeState(STATE_FLOOR2_GALLERY);
+            changeState(STATE_FLOOR1_LOBBY);
         });
     }, 1200);
 }
@@ -1156,75 +1138,4 @@ function generateGradientEnvMap() {
     const texture = new THREE.CanvasTexture(canvas);
     texture.mapping = THREE.EquirectangularReflectionMapping;
     return texture;
-}
-
-function updateReferencePhotosUI() {
-    const grid = document.querySelector('.photos-grid');
-    if (!grid) return;
-
-    let photos = [];
-
-    if (currentState === STATE_WORLD || currentState === STATE_ENTRANCE) {
-        photos = [
-            {
-                src: '../assets/reference/exterior building.jpg',
-                title: 'Exterior Facade',
-                caption: 'Main Building Exterior Facade showing modern glass architectures.'
-            },
-            {
-                src: '../assets/reference/entrance building.png',
-                title: 'Entrance Facade',
-                caption: 'Close up of the entrance facade showing concrete canopy structures.'
-            },
-            {
-                src: '../assets/reference/entrance door.png',
-                title: 'Entrance Doors',
-                caption: 'Double glass doors acting as the entrance to the library lobby.'
-            }
-        ];
-    } else if (currentState === STATE_FLOOR1_LOBBY || currentState === STATE_FLOOR1_COUNTER || currentState === STATE_FLOOR1_STUDY) {
-        photos = [
-            {
-                src: '../assets/reference/hall.jpg',
-                title: '1F: Lobby Hall',
-                caption: 'Main lobby hall area on the first floor showing open space.'
-            },
-            {
-                src: '../assets/reference/entrance.jpg',
-                title: '1F: Entrance',
-                caption: 'View of the primary entrance doors from the inside of the hall.'
-            },
-            {
-                src: '../assets/reference/registration counter.jpg',
-                title: '1F: Registration Counter',
-                caption: 'The main library registration and enquiry counter on the first floor.'
-            }
-        ];
-    } else if (currentState === STATE_FLOOR2_GALLERY || currentState === STATE_FLOOR2_STUDY) {
-        photos = [
-            {
-                src: '../assets/reference/gallery entrance.jpg',
-                title: '2F: Gallery Entrance',
-                caption: 'Entrance to the second-floor gallery showcasing historical records.'
-            },
-            {
-                src: '../assets/reference/gallery interior.jpg',
-                title: '2F: Gallery Interior',
-                caption: 'Interior view of the second-floor gallery layout and display panels.'
-            },
-            {
-                src: '../assets/reference/study section.jpg',
-                title: '2F: Study Section',
-                caption: 'Quiet reading and study section on the second floor near the glass windows.'
-            }
-        ];
-    }
-
-    grid.innerHTML = photos.map(photo => `
-        <div class="photo-card">
-            <img src="${encodeURI(photo.src)}" alt="${photo.title}" class="reference-img">
-            <div class="photo-title">${photo.title}</div>
-            <p class="photo-caption">${photo.caption}</p>
-        </div>
-    `).join('');
 }
