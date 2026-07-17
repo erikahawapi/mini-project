@@ -12,6 +12,7 @@ let currentState = STATE_WORLD;
 let scene, camera, renderer, controls;
 let raycaster, mouse;
 let loadingManager;
+let isCameraAnimating = false;
 
 
 const worldGroup = new THREE.Group();
@@ -22,7 +23,10 @@ const floor2Group = new THREE.Group();
 
 let interactiveObjects = [];
 let doorMeshes = [];
+let hotspots = [];
 let doorPosition = new THREE.Vector3(7.5, 2.2, 0);
+const keys = { w: false, a: false, s: false, d: false };
+
 
 
 const cameraViews = {
@@ -31,28 +35,28 @@ const cameraViews = {
         target: { x: 0, y: 3, z: 0 }
     },
     [STATE_ENTRANCE]: {
-        position: { x: 7.5, y: 2.2, z: 9.5 },
-        target: { x: 7.5, y: 2.2, z: 0 }
+        position: { x: 5.61, y: 0.58, z: 3.71 },
+        target: { x: 5.61, y: 0.53, z: 2.71 }
     },
     [STATE_FLOOR1_LOBBY]: {
-        position: { x: 0, y: 2, z: -2 },
-        target: { x: 0, y: 2, z: -10 }
+        position: { x: 4.16, y: 0.45, z: -1.06 },
+        target: { x: 5.15, y: 0.43, z: -1.04 }
     },
     [STATE_FLOOR1_COUNTER]: {
-        position: { x: -6, y: 2, z: -6 },
-        target: { x: -10, y: 2, z: -10 }
+        position: { x: 2.76, y: 0.37, z: -1.39 },
+        target: { x: 2.78, y: 0.30, z: -0.39 }
     },
     [STATE_FLOOR1_STUDY]: {
-        position: { x: 0, y: 2, z: -25 },
-        target: { x: 0, y: 2, z: -40 }
+        position: { x: -1.18, y: 0.58, z: -0.74 },
+        target: { x: -2.18, y: 0.51, z: -0.73 }
     },
     [STATE_FLOOR2_GALLERY]: {
-        position: { x: 0, y: 10, z: -20 },
-        target: { x: 0, y: 10, z: -32 }
+        position: { x: -2.20, y: 1.39, z: 0.75 },
+        target: { x: -1.21, y: 1.38, z: 0.79 }
     },
     [STATE_FLOOR2_STUDY]: {
-        position: { x: 0, y: 10, z: -35 },
-        target: { x: 0, y: 10, z: -50 }
+        position: { x: -2.24, y: 1.57, z: -0.35 },
+        target: { x: -3.23, y: 1.51, z: -0.44 }
     }
 };
 
@@ -85,22 +89,85 @@ function init() {
     renderer.toneMappingExposure = 1.0;
 
 
-    controls = new THREE.OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.05;
-    controls.maxPolarAngle = Math.PI / 2 - 0.05;
-    controls.minDistance = 2;
-    controls.maxDistance = 100;
-    controls.target.set(startView.target.x, startView.target.y, startView.target.z);
-    controls.update();
-    controls.enabled = false;
+    class DragControls {
+        constructor(camera, domElement) {
+            this.camera = camera;
+            this.domElement = domElement;
+            this.isLocked = true;
+            this.euler = new THREE.Euler(0, 0, 0, 'YXZ');
+            this.isDragging = false;
+            this.previousMousePosition = { x: 0, y: 0 };
+            this.listeners = { change: [], lock: [], unlock: [] };
+            
+            this.domElement.addEventListener('mousedown', (e) => {
+                if (e.button === 0 && document.getElementById('welcome-screen').classList.contains('hidden')) {
+                    this.isDragging = true;
+                    this.previousMousePosition = { x: e.clientX, y: e.clientY };
+                }
+            });
+            
+            window.addEventListener('mouseup', (e) => {
+                if (e.button === 0) {
+                    this.isDragging = false;
+                }
+            });
+            
+            window.addEventListener('mousemove', (e) => {
+                if (this.isDragging && this.isLocked) {
+                    const movementX = e.clientX - this.previousMousePosition.x;
+                    const movementY = e.clientY - this.previousMousePosition.y;
+
+                    this.euler.setFromQuaternion(this.camera.quaternion);
+                    this.euler.y -= movementX * 0.002;
+                    this.euler.x -= movementY * 0.002;
+                    this.euler.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, this.euler.x));
+                    this.camera.quaternion.setFromEuler(this.euler);
+
+                    this.previousMousePosition = { x: e.clientX, y: e.clientY };
+                    this.dispatchEvent({ type: 'change' });
+                }
+            });
+            
+            this.vec = new THREE.Vector3();
+        }
+        
+        addEventListener(type, listener) {
+            if (!this.listeners[type]) this.listeners[type] = [];
+            this.listeners[type].push(listener);
+        }
+        
+        dispatchEvent(event) {
+            if (this.listeners[event.type]) {
+                for (let l of this.listeners[event.type]) l(event);
+            }
+        }
+        
+        lock() { this.isLocked = true; this.dispatchEvent({ type: 'lock' }); }
+        unlock() { this.isLocked = false; this.dispatchEvent({ type: 'unlock' }); }
+        
+        moveForward(distance) {
+            this.vec.setFromMatrixColumn(this.camera.matrix, 0);
+            this.vec.crossVectors(this.camera.up, this.vec);
+            this.camera.position.addScaledVector(this.vec, distance);
+        }
+        
+        moveRight(distance) {
+            this.vec.setFromMatrixColumn(this.camera.matrix, 0);
+            this.camera.position.addScaledVector(this.vec, distance);
+        }
+    }
+
+    controls = new DragControls(camera, renderer.domElement);
+
+    const dummyTarget = new THREE.Vector3(startView.target.x, startView.target.y, startView.target.z);
+    camera.lookAt(dummyTarget);
 
 
     controls.addEventListener('change', () => {
         if (currentState === STATE_WORLD || currentState === STATE_ENTRANCE) {
 
             const dist = camera.position.distanceTo(doorPosition);
-            
+
 
             const isClose = dist < 7.5;
 
@@ -130,73 +197,112 @@ function init() {
     setupLoadingManager();
     load3DModels();
 
+    window.addEventListener('keydown', (e) => {
+        if (isCameraAnimating) return;
+        const key = e.key.toLowerCase();
+        if (keys.hasOwnProperty(key)) keys[key] = true;
+    });
+    window.addEventListener('keyup', (e) => {
+        const key = e.key.toLowerCase();
+        if (keys.hasOwnProperty(key)) keys[key] = false;
+    });
+
 
     window.addEventListener('resize', onWindowResize);
-    
+
 
     window.addEventListener('contextmenu', (e) => {
         e.preventDefault();
     });
-    
 
-    let isMouseDown = false;
-    let isDragging = false;
-    let dragStartX = 0;
-    let dragStartY = 0;
+    let clickStartX = 0;
+    let clickStartY = 0;
+
+    window.addEventListener('mousemove', (e) => {
+        mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+    });
 
     window.addEventListener('mousedown', (e) => {
-        dragStartX = e.clientX;
-        dragStartY = e.clientY;
-        isMouseDown = true;
-        isDragging = false;
+        if (isCameraAnimating) return;
+        if (e.button === 0 && document.getElementById('welcome-screen').classList.contains('hidden') &&
+            document.getElementById('info-modal').classList.contains('hidden') &&
+            document.getElementById('photos-modal').classList.contains('hidden')) {
+            if (!controls.isLocked) controls.lock();
+        }
+        if (e.button === 0 && controls.isLocked) {
+            clickStartX = e.clientX;
+            clickStartY = e.clientY;
+        }
     });
 
     window.addEventListener('mouseup', (e) => {
-        isMouseDown = false;
-    });
-
-    window.addEventListener('mousemove', (e) => {
-
-        if (isMouseDown) {
-            if (Math.abs(e.clientX - dragStartX) > 6 || Math.abs(e.clientY - dragStartY) > 6) {
-                isDragging = true;
-            }
-        }
-
-
-
-        if (document.getElementById('welcome-screen').classList.contains('hidden') &&
-            document.getElementById('info-modal').classList.contains('hidden') &&
-            document.getElementById('photos-modal').classList.contains('hidden')) {
-            
-            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
-            
-            raycaster.setFromCamera(mouse, camera);
-            const intersects = raycaster.intersectObjects(scene.children, true);
-            
-            for (let i = 0; i < intersects.length; i++) {
-                const hoveredObj = intersects[i].object;
-                const interaction = findInteractiveAncestor(hoveredObj);
-                
-                if (interaction) {
-
-                    if ((interaction.type === 'sign' && (currentState === STATE_WORLD || currentState === STATE_ENTRANCE)) ||
-                        (interaction.type === 'door' && (currentState === STATE_ENTRANCE || currentState === STATE_WORLD))) {
-                        document.body.style.cursor = 'pointer';
-                        return;
-                    }
+        if (e.button === 0 && controls.isLocked) {
+            const dist = Math.hypot(e.clientX - clickStartX, e.clientY - clickStartY);
+            if (dist < 5) {
+                if (document.getElementById('welcome-screen').classList.contains('hidden') &&
+                    document.getElementById('info-modal').classList.contains('hidden') &&
+                    document.getElementById('photos-modal').classList.contains('hidden')) {
+                    performInteraction(e);
                 }
             }
         }
-        document.body.style.cursor = 'default';
     });
 
-    window.addEventListener('click', (e) => {
-        if (!isDragging) {
-            onDocumentClick(e);
+    function performInteraction(e) {
+        if (e) {
+            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+        } else {
+            raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+        }
+
+        const hotspotIntersects = raycaster.intersectObjects(hotspots, false);
+        if (hotspotIntersects.length > 0) {
+            handleObjectInteraction({ userData: hotspotIntersects[0].object.userData });
+            return;
+        }
+
+        const intersects = raycaster.intersectObjects(scene.children, true);
+        for (let i = 0; i < intersects.length; i++) {
+            const clickedObj = intersects[i].object;
+            const interaction = findInteractiveAncestor(clickedObj);
+            if (interaction && (interaction.type === 'door' || interaction.type === 'sign')) {
+                handleObjectInteraction(clickedObj);
+                break;
+            }
+        }
+    }
+
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'c' || e.key === 'C') {
+            const pos = camera.position;
+            const tgt = new THREE.Vector3();
+            camera.getWorldDirection(tgt);
+            tgt.add(pos);
+            const coordStr = `position: { x: ${pos.x.toFixed(2)}, y: ${pos.y.toFixed(2)}, z: ${pos.z.toFixed(2)} },\ntarget: { x: ${tgt.x.toFixed(2)}, y: ${tgt.y.toFixed(2)}, z: ${tgt.z.toFixed(2)} }`;
+            alert("Camera coordinates copied to clipboard:\n\n" + coordStr);
+            navigator.clipboard.writeText(coordStr);
+            console.log("Camera Coordinates:", coordStr);
         }
     });
+
+    function createHotspot(position, type, group) {
+        const geo = new THREE.SphereGeometry(0.03, 16, 16);
+        const mat = new THREE.MeshBasicMaterial({ color: 0x00adb5, transparent: true, opacity: 0.8 });
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.position.copy(position);
+        mesh.userData = { type: type, isHotspot: true };
+        group.add(mesh);
+        hotspots.push(mesh);
+    }
+
+    createHotspot(new THREE.Vector3(2.80, 0.40, -0.39), 'counter', scene);
+    createHotspot(new THREE.Vector3(5.16, 0.52, -1.06), 'hall', scene);
+    createHotspot(new THREE.Vector3(-2.16, 0.39, -0.69), 'study1', scene);
+    createHotspot(new THREE.Vector3(-1.20, 1.38, 0.75), 'gallery', scene);
+    createHotspot(new THREE.Vector3(-3.21, 1.50, -0.59), 'study2', scene);
 
     setupUIEventListeners();
 
@@ -223,14 +329,14 @@ function setupLighting() {
     dirLight.shadow.mapSize.height = 2048;
     dirLight.shadow.camera.near = 0.5;
     dirLight.shadow.camera.far = 150;
-    
+
     const d = 30;
     dirLight.shadow.camera.left = -d;
     dirLight.shadow.camera.right = d;
     dirLight.shadow.camera.top = d;
     dirLight.shadow.camera.bottom = -d;
     dirLight.shadow.bias = -0.0005;
-    
+
     scene.add(dirLight);
 }
 
@@ -240,7 +346,7 @@ function setupLoadingManager() {
     const loadingProgress = document.getElementById('loading-progress');
 
     loadingManager = new THREE.LoadingManager();
-    
+
     loadingManager.onStart = function (url, itemsLoaded, itemsTotal) {
         loadingScreen.classList.remove('hidden');
     };
@@ -265,27 +371,48 @@ function load3DModels() {
     const loader = new THREE.GLTFLoader(loadingManager);
 
     loader.load(
-        'assets/models/PRZS.glb',
+        '../assets/models/PRZS.glb',
         (gltf) => {
             const model = gltf.scene;
-            
+
             model.traverse((child) => {
                 if (child.isMesh) {
                     child.castShadow = true;
                     child.receiveShadow = true;
-                    
+
 
                     if (child.material) {
                         const matName = child.material.name ? child.material.name.toLowerCase() : "";
                         const meshName = child.name ? child.name.toLowerCase() : "";
                         
-
-                        if (matName.includes('glass') || matName.includes('window') || matName.includes('cermin') || 
+                        const isFloor = matName.includes('material.192') || 
+                                        matName.includes('material.226') || 
+                                        matName.includes('material.004') || 
+                                        matName.includes('material.005') || 
+                                        matName.includes('material.001') || 
+                                        matName.includes('material.006') || 
+                                        matName.includes('material_14') || 
+                                        meshName.includes('mesh_input');
+                        
+                        if (isFloor) {
+                            child.material = child.material.clone();
+                            child.material.color.setHex(0xffffff);
+                            if (child.material.map) {
+                                child.material.map = null;
+                            }
+                            child.material.roughness = 0.8;
+                            child.material.metalness = 0.0;
+                            child.material.needsUpdate = true;
+                        } else if (
+                            matName.includes('glass') || matName.includes('window') || matName.includes('cermin') || 
                             matName.includes('blue') || matName.includes('cyan') || matName.includes('dark_glass') ||
+                            matName.includes('material.020') || matName.includes('material.022') || 
+                            matName.includes('material.023') || matName.includes('material.024') || 
+                            matName.includes('material.019') ||
                             meshName.includes('glass') || meshName.includes('window') || meshName.includes('cermin') || 
-                            meshName.includes('window_pane') || meshName.includes('panel')) {
-                            
-
+                            meshName.includes('window_pane') || meshName.includes('panel')
+                        ) {
+                            child.material = child.material.clone();
                             child.material.color.setHex(0x00adb5);
                             child.material.roughness = 0.02;
                             child.material.metalness = 0.95;
@@ -294,15 +421,15 @@ function load3DModels() {
                             child.material.needsUpdate = true;
                         }
                     }
-                    
+
 
                     let currentObj = child;
                     let isDoorLeaf = false;
                     while (currentObj) {
                         if (currentObj.name) {
                             const cName = currentObj.name.toLowerCase();
-                            if ((cName.includes('left') || cName.includes('right')) && 
-                                cName.includes('entrance') && 
+                            if ((cName.includes('left') || cName.includes('right')) &&
+                                cName.includes('entrance') &&
                                 cName.includes('door')) {
                                 isDoorLeaf = true;
                                 break;
@@ -310,7 +437,7 @@ function load3DModels() {
                         }
                         currentObj = currentObj.parent;
                     }
-                                       
+
                     if (isDoorLeaf) {
 
                         if (child.material) {
@@ -348,8 +475,9 @@ function load3DModels() {
 
             if (currentState === STATE_WORLD) {
                 camera.position.set(cameraViews[STATE_WORLD].position.x, cameraViews[STATE_WORLD].position.y, cameraViews[STATE_WORLD].position.z);
-                controls.target.set(cameraViews[STATE_WORLD].target.x, cameraViews[STATE_WORLD].target.y, cameraViews[STATE_WORLD].target.z);
-                controls.update();
+
+                const dummyTarget = new THREE.Vector3(cameraViews[STATE_WORLD].target.x, cameraViews[STATE_WORLD].target.y, cameraViews[STATE_WORLD].target.z);
+                camera.lookAt(dummyTarget);
             }
 
             worldGroup.add(model);
@@ -359,15 +487,12 @@ function load3DModels() {
             if (doorMeshes.length > 0) {
                 doorMeshes[0].getWorldPosition(doorPosition);
                 console.log("Dynamically captured correct door coordinates:", doorPosition);
-                
 
-                cameraViews[STATE_ENTRANCE].position = { x: doorPosition.x, y: doorPosition.y + 0.2, z: doorPosition.z + 3.2 };
-                cameraViews[STATE_ENTRANCE].target = { x: doorPosition.x, y: doorPosition.y + 0.2, z: doorPosition.z };
             }
         },
         undefined,
         (error) => {
-            console.warn('Could not find assets/models/PRZS.glb. Loading visual placeholder scene.');
+            console.warn('Could not find assets/models/FULL PRZS.glb. Loading visual placeholder scene.');
             createPlaceholderScene();
         }
     );
@@ -446,14 +571,14 @@ function createPlaceholderScene() {
         const trunk = new THREE.Mesh(trunkGeo, trunkMat);
         trunk.position.y = 1.5;
         trunk.castShadow = true;
-        
+
         const leaves = new THREE.Mesh(leavesGeo, leavesMat);
         leaves.position.y = 3.5;
         leaves.castShadow = true;
 
         tree.add(trunk);
         tree.add(leaves);
-        
+
         tree.position.set(-14 + (i * 4), 0, 14);
         worldGroup.add(tree);
     }
@@ -466,31 +591,32 @@ function createPlaceholderScene() {
 
 
 function animateCamera(endPos, endTarget, duration = 2.2, callback = null) {
-    controls.enabled = false;
+    if (controls.isLocked) controls.unlock();
+    isCameraAnimating = true;
 
     gsap.to(camera.position, {
         x: endPos.x,
         y: endPos.y,
         z: endPos.z,
         duration: duration,
-        ease: "power2.inOut",
-        onUpdate: () => {
-            controls.update();
-        }
+        ease: "power2.inOut"
     });
 
-    gsap.to(controls.target, {
+    let dummyTarget = new THREE.Vector3();
+    camera.getWorldDirection(dummyTarget);
+    dummyTarget.add(camera.position);
+
+    gsap.to(dummyTarget, {
         x: endTarget.x,
         y: endTarget.y,
         z: endTarget.z,
         duration: duration,
         ease: "power2.inOut",
         onUpdate: () => {
-            controls.update();
+            camera.lookAt(dummyTarget);
         },
         onComplete: () => {
-            controls.enabled = true;
-            controls.update();
+            isCameraAnimating = false;
             if (callback) callback();
         }
     });
@@ -499,12 +625,12 @@ function animateCamera(endPos, endTarget, duration = 2.2, callback = null) {
 
 function changeState(newState) {
     currentState = newState;
-    
 
-    worldGroup.visible = (currentState === STATE_WORLD || currentState === STATE_ENTRANCE);
-    floor1LobbyGroup.visible = (currentState === STATE_FLOOR1_LOBBY || currentState === STATE_FLOOR1_COUNTER);
-    floor1StudyGroup.visible = (currentState === STATE_FLOOR1_STUDY || currentState === STATE_FLOOR2_GALLERY || currentState === STATE_FLOOR2_STUDY);
-    floor2Group.visible = (currentState === STATE_FLOOR2_GALLERY || currentState === STATE_FLOOR2_STUDY);
+
+    worldGroup.visible = true;
+    floor1LobbyGroup.visible = true;
+    floor1StudyGroup.visible = true;
+    floor2Group.visible = true;
 
 
     doorMeshes.forEach(door => {
@@ -525,7 +651,7 @@ function changeState(newState) {
     buttons.forEach(btn => {
         btn.classList.remove('active');
         const floorAttr = btn.getAttribute('data-floor');
-        if (floorAttr === currentState || 
+        if (floorAttr === currentState ||
             (floorAttr === 'exterior' && (currentState === STATE_WORLD || currentState === STATE_ENTRANCE))) {
             btn.classList.add('active');
         }
@@ -536,32 +662,7 @@ function changeState(newState) {
 }
 
 
-function onDocumentClick(event) {
 
-    if (!document.getElementById('welcome-screen').classList.contains('hidden')) return;
-    if (!document.getElementById('info-modal').classList.contains('hidden')) return;
-    if (!document.getElementById('photos-modal').classList.contains('hidden')) return;
-
-
-    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-
-    raycaster.setFromCamera(mouse, camera);
-    
-
-    const intersects = raycaster.intersectObjects(scene.children, true);
-
-
-    for (let i = 0; i < intersects.length; i++) {
-        const clickedObj = intersects[i].object;
-        const interaction = findInteractiveAncestor(clickedObj);
-        
-        if (interaction) {
-            handleObjectInteraction(clickedObj);
-            break;
-        }
-    }
-}
 
 
 function findInteractiveAncestor(object) {
@@ -569,18 +670,19 @@ function findInteractiveAncestor(object) {
     while (current) {
         if (current.name) {
             const name = current.name.toLowerCase();
-            
+
 
             const worldPos = new THREE.Vector3();
             current.getWorldPosition(worldPos);
 
 
-            const isNamedSign = name.includes('building') || name.includes('sign') || name.includes('board') || 
-                                name.includes('letter') || name.includes('text') || name.includes('title') || 
-                                name.includes('name') || name.includes('label') || name.includes('perpustakaan') || 
-                                name.includes('raja') || name.includes('zarith') || name.includes('sofiah') || 
-                                name.includes('sofia') || name.includes('sofea') || name.includes('library');
-                                
+            const isNamedSign = name.includes('building') || name.includes('sign') || name.includes('board') ||
+                name.includes('letter') || name.includes('text') || name.includes('title') ||
+                name.includes('name') || name.includes('label') || name.includes('perpustakaan') ||
+                name.includes('raja') || name.includes('zarith') || name.includes('sofiah') ||
+                name.includes('sofia') || name.includes('sofea') || name.includes('library') ||
+                name.includes('glass') || name.includes('window') || name.includes('wall') || name.includes('facade');
+
 
             const isLetterMesh = /^[a-z](?:\.\d+)?$/.test(name) || name.includes('curve') || name.includes('font');
             const isSignAtTop = isLetterMesh && worldPos.y > 9.0;
@@ -588,11 +690,10 @@ function findInteractiveAncestor(object) {
             if (isNamedSign || isSignAtTop) {
                 return { type: 'sign', object: current };
             }
-            
 
-            const isDoor = (name.includes('left') || name.includes('right')) && 
-                           name.includes('entrance') && 
-                           name.includes('door');
+            const isDoor = (name.includes('left') || name.includes('right')) &&
+                name.includes('entrance') &&
+                name.includes('door');
             if (isDoor) {
                 return { type: 'door', object: current };
             }
@@ -603,25 +704,59 @@ function findInteractiveAncestor(object) {
 }
 
 
+function showInfoPopup(title, description) {
+    if (controls.isLocked) controls.unlock();
+    const modalBody = document.getElementById('modal-body');
+    modalBody.innerHTML = `
+        <div style="padding: 15px;">
+            <h2 style="color: #00ffff; font-family: 'Space Grotesk', sans-serif; font-size: 1.8rem; margin-bottom: 15px; border-bottom: 2px solid rgba(0, 255, 255, 0.2); padding-bottom: 10px;">
+                ${title}
+            </h2>
+            <p style="font-size: 1.05rem; line-height: 1.7; color: #e0e0e0; font-family: 'Outfit', sans-serif;">
+                ${description}
+            </p>
+        </div>
+    `;
+    document.getElementById('info-modal').classList.remove('hidden');
+}
+
 function handleObjectInteraction(object) {
-    const interaction = findInteractiveAncestor(object);
+    let interaction = null;
+    if (object.userData && object.userData.isHotspot) {
+        interaction = { type: object.userData.type, object: object };
+    } else {
+        interaction = findInteractiveAncestor(object);
+    }
+
     if (!interaction) {
-        console.log("Clicked object has no interactive ancestor:", object.name);
+        console.log("Clicked object has no interactive ancestor:", object.name || "hotspot");
         return;
     }
 
     console.log("Interacted type:", interaction.type, "Matched object:", interaction.object.name);
 
     if (interaction.type === 'sign' && (currentState === STATE_WORLD || currentState === STATE_ENTRANCE)) {
-
-        const targetView = cameraViews[STATE_ENTRANCE];
-
-        animateCamera(targetView.position, targetView.target, 2.5, () => {
-            changeState(STATE_ENTRANCE);
-        });
-    } 
+        changeState(STATE_ENTRANCE);
+        const view = cameraViews[STATE_ENTRANCE];
+        animateCamera(view.position, view.target, 2.0);
+    }
     else if (interaction.type === 'door' && (currentState === STATE_ENTRANCE || currentState === STATE_WORLD)) {
         openDoorsAndEnter();
+    }
+    else if (interaction.type === 'hall') {
+        showInfoPopup('Hall at Level 1', 'The Level 1 Hall serves as a venue for various events, including seminars, talks, workshops, exhibitions, and academic programs organized by the library and the university.');
+    }
+    else if (interaction.type === 'counter') {
+        showInfoPopup('Registration Counter', 'The Registration Counter is your first stop for library services, inquiries, and borrowing information.');
+    }
+    else if (interaction.type === 'study1') {
+        showInfoPopup('Study Section at Level 1', 'The Level 1 Study Section provides a comfortable and collaborative learning environment where students can study, discuss assignments, work on group projects, or access library resources.');
+    }
+    else if (interaction.type === 'gallery') {
+        showInfoPopup('Gallery at Level 2', 'The Level 2 Gallery showcases exhibitions, displays, and special collections that highlight the university’s achievements, history, and valuable academic resources.');
+    }
+    else if (interaction.type === 'study2') {
+        showInfoPopup('Study Section at Level 2', 'The Level 2 Study Section offers a quiet and peaceful environment for individual study and focused learning. It is ideal for students who require minimal distractions while reading or completing academic work.');
     }
 }
 
@@ -640,23 +775,23 @@ function updateUIContent() {
             statusText.innerText = "Exterior Building";
             break;
         case STATE_FLOOR1_LOBBY:
-            locDesc.innerHTML = "Welcome to the 1F: Hall. Here you see the lobby structure and security turnstiles. Choose study areas or check in at the Registration Counter.";
+            locDesc.innerHTML = "Welcome to the <strong>Hall</strong>, an open space for events.";
             statusText.innerText = "1F: Hall";
             break;
         case STATE_FLOOR1_COUNTER:
-            locDesc.innerHTML = "We are at the 1F: Registration Counter. Check in here for library guides and research desk assistance.";
+            locDesc.innerHTML = "We are at the <strong>Registration Counter</strong>. Check in here before entering the library.";
             statusText.innerText = "1F: Registration Counter";
             break;
         case STATE_FLOOR1_STUDY:
-            locDesc.innerHTML = "You have entered the 1F: Study Section. Find a bookshelf or click the stairs to go up to the 2F Gallery.";
+            locDesc.innerHTML = "You have entered the <strong>Study Section</strong>, a place to sit comfortably and focus on your work.";
             statusText.innerText = "1F: Study Section";
             break;
         case STATE_FLOOR2_GALLERY:
-            locDesc.innerHTML = "Welcome to the 2F: Gallery. Examine local UTM archives, historical layouts, and gallery spaces.";
+            locDesc.innerHTML = "Welcome to the <strong>Gallery</strong>. Examine local UTM archives and history.";
             statusText.innerText = "2F: Gallery";
             break;
         case STATE_FLOOR2_STUDY:
-            locDesc.innerHTML = "You are now in the 2F: Study Section. Enjoy quiet reading rows and study tables by the glass windows.";
+            locDesc.innerHTML = "You are now in the <strong>Study Section</strong>. Enjoy study tables by the glass window.";
             statusText.innerText = "2F: Study Section";
             break;
     }
@@ -664,6 +799,21 @@ function updateUIContent() {
 
 
 function setupUIEventListeners() {
+    const bgMusic = document.getElementById('bg-music');
+    if (bgMusic) {
+        bgMusic.volume = 0.5;
+        let playPromise = bgMusic.play();
+        if (playPromise !== undefined) {
+            playPromise.catch(error => {
+                const startAudio = () => {
+                    bgMusic.play();
+                    document.removeEventListener('click', startAudio);
+                };
+                document.addEventListener('click', startAudio);
+            });
+        }
+    }
+
     const startBtn = document.getElementById('start-btn');
     const welcomeScreen = document.getElementById('welcome-screen');
     const uiHud = document.getElementById('ui-hud');
@@ -672,8 +822,7 @@ function setupUIEventListeners() {
     startBtn.addEventListener('click', () => {
         welcomeScreen.classList.add('hidden');
         uiHud.classList.remove('hidden');
-        controls.enabled = true;
-        
+        controls.lock();
 
         const worldView = cameraViews[STATE_WORLD];
         animateCamera(worldView.position, worldView.target, 2.0);
@@ -685,7 +834,7 @@ function setupUIEventListeners() {
             const rect = startBtn.getBoundingClientRect();
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
-            
+
             startBtn.style.setProperty('--mouse-x', `${x}px`);
             startBtn.style.setProperty('--mouse-y', `${y}px`);
 
@@ -707,6 +856,22 @@ function setupUIEventListeners() {
         });
     }
 
+
+    const musicToggleBtn = document.getElementById('music-toggle-btn');
+    if (musicToggleBtn) {
+        musicToggleBtn.addEventListener('click', () => {
+            const bgMusic = document.getElementById('bg-music');
+            if (bgMusic) {
+                if (bgMusic.paused) {
+                    bgMusic.play();
+                    musicToggleBtn.innerText = '🔊 Music On';
+                } else {
+                    bgMusic.pause();
+                    musicToggleBtn.innerText = '🔇 Music Off';
+                }
+            }
+        });
+    }
 
     const historyBtn = document.getElementById('feature-history');
     const hoursBtn = document.getElementById('feature-hours');
@@ -806,6 +971,7 @@ function setupUIEventListeners() {
     const photosClose = document.getElementById('photos-close');
 
     galleryBtn.addEventListener('click', () => {
+        updateReferencePhotosUI();
         photosModal.classList.remove('hidden');
     });
 
@@ -832,8 +998,56 @@ function animate() {
     requestAnimationFrame(animate);
 
 
-    if (controls && controls.enabled) {
-        controls.update();
+    if (controls && controls.isLocked) {
+        const moveSpeed = 0.05;
+        const oldY = camera.position.y;
+
+        if (keys.w) controls.moveForward(moveSpeed);
+        if (keys.s) controls.moveForward(-moveSpeed);
+        if (keys.a) controls.moveRight(-moveSpeed);
+        if (keys.d) controls.moveRight(moveSpeed);
+
+        camera.position.y = oldY;
+
+        raycaster.setFromCamera(mouse, camera);
+        const hotspotIntersects = raycaster.intersectObjects(hotspots, false);
+        let showPrompt = false;
+
+        hotspots.forEach(h => h.material.color.setHex(0x00adb5));
+
+        if (hotspotIntersects.length > 0) {
+            const hoveredHotspot = hotspotIntersects[0].object;
+            showPrompt = true;
+
+            if (showPrompt) {
+                hoveredHotspot.material.color.setHex(0xff0000);
+            }
+        } else {
+            const intersects = raycaster.intersectObjects(scene.children, true);
+            for (let i = 0; i < intersects.length; i++) {
+                const hoveredObj = intersects[i].object;
+                const interaction = findInteractiveAncestor(hoveredObj);
+                if (interaction) {
+                    let isClickable = false;
+                    if (interaction.type === 'sign' && (currentState === STATE_WORLD || currentState === STATE_ENTRANCE)) isClickable = true;
+                    if (interaction.type === 'door' && (currentState === STATE_ENTRANCE || currentState === STATE_WORLD)) isClickable = true;
+
+                    if (isClickable) {
+                        showPrompt = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (showPrompt) {
+            document.getElementById('interact-prompt').classList.remove('hidden');
+        } else {
+            document.getElementById('interact-prompt').classList.add('hidden');
+        }
+    } else {
+        const promptEl = document.getElementById('interact-prompt');
+        if (promptEl) promptEl.classList.add('hidden');
     }
 
 
@@ -858,7 +1072,7 @@ function openDoorsAndEnter() {
     if (doorMeshes.length >= 2) {
 
         doorMeshes.sort((a, b) => a.position.x - b.position.x);
-        
+
         const leftDoor = doorMeshes[0];
         const rightDoor = doorMeshes[1];
 
@@ -880,7 +1094,7 @@ function openDoorsAndEnter() {
     } else if (doorMeshes.length === 1) {
         const door = doorMeshes[0];
         const lowerName = door.name.toLowerCase();
-        
+
 
         if (lowerName.includes('right')) {
             gsap.to(door.rotation, {
@@ -910,10 +1124,10 @@ function openDoorsAndEnter() {
 function enterLobbyTransition() {
     document.getElementById('loading-screen').classList.remove('hidden');
     document.getElementById('loading-progress').innerText = 'Entering main lobby...';
-    
+
     setTimeout(() => {
         document.getElementById('loading-screen').classList.add('hidden');
-        
+
         const targetView = cameraViews[STATE_FLOOR1_LOBBY];
         animateCamera(targetView.position, targetView.target, 1.5, () => {
             changeState(STATE_FLOOR1_LOBBY);
@@ -927,7 +1141,7 @@ function generateGradientEnvMap() {
     canvas.width = 64;
     canvas.height = 32;
     const ctx = canvas.getContext('2d');
-    
+
 
     const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
     gradient.addColorStop(0, '#56ccf2');
@@ -935,11 +1149,82 @@ function generateGradientEnvMap() {
     gradient.addColorStop(0.48, '#ffffff');
     gradient.addColorStop(0.55, '#2c3e50');
     gradient.addColorStop(1, '#0f2027');
-    
+
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
+
     const texture = new THREE.CanvasTexture(canvas);
     texture.mapping = THREE.EquirectangularReflectionMapping;
     return texture;
+}
+
+function updateReferencePhotosUI() {
+    const grid = document.querySelector('.photos-grid');
+    if (!grid) return;
+
+    let photos = [];
+
+    if (currentState === STATE_WORLD || currentState === STATE_ENTRANCE) {
+        photos = [
+            {
+                src: '../assets/reference/exterior building.jpg',
+                title: 'Exterior Facade',
+                caption: 'Main Building Exterior Facade showing modern glass architectures.'
+            },
+            {
+                src: '../assets/reference/entrance building.png',
+                title: 'Entrance Facade',
+                caption: 'Close up of the entrance facade showing concrete canopy structures.'
+            },
+            {
+                src: '../assets/reference/entrance door.png',
+                title: 'Entrance Doors',
+                caption: 'Double glass doors acting as the entrance to the library lobby.'
+            }
+        ];
+    } else if (currentState === STATE_FLOOR1_LOBBY || currentState === STATE_FLOOR1_COUNTER || currentState === STATE_FLOOR1_STUDY) {
+        photos = [
+            {
+                src: '../assets/reference/hall.jpg',
+                title: '1F: Lobby Hall',
+                caption: 'Main lobby hall area on the first floor showing open space.'
+            },
+            {
+                src: '../assets/reference/entrance.jpg',
+                title: '1F: Entrance',
+                caption: 'View of the primary entrance doors from the inside of the hall.'
+            },
+            {
+                src: '../assets/reference/registration counter.jpg',
+                title: '1F: Registration Counter',
+                caption: 'The main library registration and enquiry counter on the first floor.'
+            }
+        ];
+    } else if (currentState === STATE_FLOOR2_GALLERY || currentState === STATE_FLOOR2_STUDY) {
+        photos = [
+            {
+                src: '../assets/reference/gallery entrance.jpg',
+                title: '2F: Gallery Entrance',
+                caption: 'Entrance to the second-floor gallery showcasing historical records.'
+            },
+            {
+                src: '../assets/reference/gallery interior.jpg',
+                title: '2F: Gallery Interior',
+                caption: 'Interior view of the second-floor gallery layout and display panels.'
+            },
+            {
+                src: '../assets/reference/study section.jpg',
+                title: '2F: Study Section',
+                caption: 'Quiet reading and study section on the second floor near the glass windows.'
+            }
+        ];
+    }
+
+    grid.innerHTML = photos.map(photo => `
+        <div class="photo-card">
+            <img src="${encodeURI(photo.src)}" alt="${photo.title}" class="reference-img">
+            <div class="photo-title">${photo.title}</div>
+            <p class="photo-caption">${photo.caption}</p>
+        </div>
+    `).join('');
 }
