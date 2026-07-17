@@ -26,6 +26,7 @@ body, html {
     color: var(--text-main);
 }
 
+
 #three-canvas {
     position: fixed;
     top: 0;
@@ -36,6 +37,7 @@ body, html {
     display: block;
 }
 
+
 .glass-panel {
     background: rgba(20, 20, 20, 0.65);
     backdrop-filter: blur(16px);
@@ -45,6 +47,7 @@ body, html {
     box-shadow: var(--shadow-main);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
 
 .overlay-screen {
     position: fixed;
@@ -152,6 +155,7 @@ body, html {
     font-size: 1.2rem;
 }
 
+
 .primary-btn {
     position: relative; 
     overflow: hidden;   
@@ -204,6 +208,7 @@ body, html {
     opacity: 1; 
 }
 
+
 .primary-btn > span,
 .primary-btn > svg {
     position: relative;
@@ -213,6 +218,8 @@ body, html {
 .primary-btn:active {
     transform: translateY(0);
 }
+
+
 
 .secondary-btn {
     background: rgba(255, 255, 255, 0.07);
@@ -238,6 +245,7 @@ body, html {
     letter-spacing: 0.5px;
 }
 
+
 #ui-hud {
     position: fixed;
     top: 0;
@@ -247,6 +255,7 @@ body, html {
     z-index: 5;
     pointer-events: none; 
 }
+
 
 .hud-panel, .hud-bar, .modal {
     pointer-events: auto;
@@ -319,6 +328,7 @@ body, html {
     color: #fff;
 }
 
+
 .floor-buttons {
     display: flex;
     flex-direction: column;
@@ -360,6 +370,7 @@ body, html {
     cursor: not-allowed;
 }
 
+
 .bottom-bar {
     position: absolute;
     bottom: 24px;
@@ -393,6 +404,7 @@ body, html {
     background-color: #00e676;
     box-shadow: 0 0 8px #00e676;
 }
+
 
 .modal {
     position: fixed;
@@ -509,6 +521,7 @@ body, html {
     line-height: 1.4;
 }
 
+
 #loading-screen {
     position: fixed;
     top: 0;
@@ -549,6 +562,7 @@ body, html {
     to { transform: rotate(360deg); }
 }
 
+
 .hidden {
     opacity: 0;
     pointer-events: none;
@@ -559,6 +573,7 @@ body, html {
     opacity: 0;
     pointer-events: none;
 }
+
 
 @media (max-width: 768px) {
     .hud-panel {
@@ -582,6 +597,19 @@ body, html {
         gap: 12px;
     }
 }
+#crosshair {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    width: 6px;
+    height: 6px;
+    background-color: white;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 100;
+    pointer-events: none;
+    box-shadow: 0 0 4px rgba(0,0,0,0.8);
+}
 
 #interact-prompt {
     position: fixed;
@@ -600,3 +628,4 @@ body, html {
     border: 1px solid var(--border-glass);
     transition: opacity 0.2s ease;
 }
+
