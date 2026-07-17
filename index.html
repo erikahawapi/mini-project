@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRZS Library - 3D Virtual Tour (Floor 2)</title>
+    <title>PRZS Library - 3D Virtual Tour</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Grotesk:wght@400;700&display=swap" rel="stylesheet">
@@ -61,6 +61,9 @@
             <h3 class="panel-title">Floor Navigator</h3>
             <div class="floor-buttons">
                 <button id="btn-exterior" class="floor-btn active" data-floor="exterior">Exterior Building</button>
+                <button id="btn-lobby" class="floor-btn" data-floor="lobby">1F: Hall</button>
+                <button id="btn-counter" class="floor-btn" data-floor="counter">1F: Registration Counter</button>
+                <button id="btn-study1" class="floor-btn" data-floor="study1">1F: Study Section</button>
                 <button id="btn-gallery" class="floor-btn" data-floor="gallery">2F: Gallery</button>
                 <button id="btn-study2" class="floor-btn" data-floor="study2">2F: Study Section</button>
             </div>
@@ -78,8 +81,9 @@
         </div>
     </div>
 
-    <audio id="bg-music" src="../assets/Music.mp3" loop preload="auto"></audio>
+    <audio id="bg-music" src="assets/Music.mp3" loop preload="auto"></audio>
 
+    <div id="crosshair" class="hidden"></div>
     <div id="interact-prompt" class="hidden">Left Click to interact</div>
 
     <div id="info-modal" class="modal hidden">
@@ -97,17 +101,17 @@
             <p class="modal-intro">Original reference photos captured at Perpustakaan Raja Zarith Sofiah to guide the 3D recreation.</p>
             <div class="photos-grid">
                 <div class="photo-card">
-                    <img src="../assets/reference/exterior%20building.jpg" alt="Photo 1: Exterior Facade" class="reference-img">
+                    <img src="assets/reference/exterior%20building.jpg" alt="Photo 1: Exterior Facade" class="reference-img">
                     <div class="photo-title">Photo 1: Exterior Facade</div>
                     <p class="photo-caption">Main Building Exterior Facade showing modern glass architectures.</p>
                 </div>
                 <div class="photo-card">
-                    <img src="../assets/reference/entrance%20building.png" alt="Photo 2: Entrance Facade" class="reference-img">
+                    <img src="assets/reference/entrance%20building.png" alt="Photo 2: Entrance Facade" class="reference-img">
                     <div class="photo-title">Photo 2: Entrance Facade</div>
                     <p class="photo-caption">Close up of the entrance facade showing concrete canopy structures.</p>
                 </div>
                 <div class="photo-card">
-                    <img src="../assets/reference/entrance%20door.png" alt="Photo 3: Entrance Doors" class="reference-img">
+                    <img src="assets/reference/entrance%20door.png" alt="Photo 3: Entrance Doors" class="reference-img">
                     <div class="photo-title">Photo 3: Entrance Doors</div>
                     <p class="photo-caption">Double glass doors acting as the entrance to the library lobby.</p>
                 </div>
