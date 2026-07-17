@@ -1128,9 +1128,9 @@ function enterLobbyTransition() {
     setTimeout(() => {
         document.getElementById('loading-screen').classList.add('hidden');
 
-        const targetView = cameraViews[STATE_FLOOR1_LOBBY];
+        const targetView = cameraViews[STATE_FLOOR2_GALLERY];
         animateCamera(targetView.position, targetView.target, 1.5, () => {
-            changeState(STATE_FLOOR1_LOBBY);
+            changeState(STATE_FLOOR2_GALLERY);
         });
     }, 1200);
 }
