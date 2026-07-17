@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PRZS Library - 3D Virtual Tour</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Grotesk:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <canvas id="three-canvas"></canvas>
+
+    <div id="welcome-screen" class="overlay-screen">
+        <div class="welcome-card glass-panel">
+            <div class="logo-container">
+                <span class="logo-tag">UTM VIRTUAL LIBRARY</span>
+            </div>
+            <h1 class="main-title">Welcome to<br>Raja Zarith Sofiah Library</h1>
+            <p class="subtitle">Step into the virtual world of Raja Zarith Sofiah Library (PRZS), Universiti Teknologi Malaysia. Explore its unique architecture, discover the history behind this research-focused library, and navigate through its facilities in an interactive 3D environment.</p>
+            
+            <div class="tour-features">
+                <div class="feature-item" id="feature-history" style="cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                    <span class="feature-icon">✨</span>
+                    <span>About Raja Zarith Sofiah Library</span>
+                </div>
+                <div class="feature-item" id="feature-hours" style="cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                    <span class="feature-icon">🕒</span>
+                    <span>Library Operating Hours</span>
+                </div>
+                <div class="feature-item" id="feature-contact" style="cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                    <span class="feature-icon">📞</span>
+                    <span>Contact Information</span>
+                </div>
+            </div>
+
+            <button id="start-btn" class="primary-btn">
+                <span>Start Exploring</span>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </button>
+        </div>
+    </div>
+
+    <div id="ui-hud" class="hidden">
+        <div class="hud-panel left-panel glass-panel">
+            <h2 class="panel-title">PRZS Guide</h2>
+            <p id="location-desc" class="panel-desc">We are standing outside the library. Click on the <strong>building sign</strong> at the top to approach the entrance.</p>
+            
+            <div class="controls-guide">
+                <h3>Controls</h3>
+                <ul>
+                    <li><span class="key">L-Click + Drag</span> Look Around</li>
+                    <li><span class="key">WASD</span> Move</li>
+                    <li><span class="key">L-Click</span> Interact</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="hud-panel right-panel glass-panel">
+            <h3 class="panel-title">Floor Navigator</h3>
+            <div class="floor-buttons">
+                <button id="btn-exterior" class="floor-btn active" data-floor="exterior">Exterior Building</button>
+                <button id="btn-lobby" class="floor-btn" data-floor="lobby">1F: Hall</button>
+                <button id="btn-counter" class="floor-btn" data-floor="counter">1F: Registration Counter</button>
+                <button id="btn-study1" class="floor-btn" data-floor="study1">1F: Study Section</button>
+                <button id="btn-gallery" class="floor-btn" data-floor="gallery">2F: Gallery</button>
+                <button id="btn-study2" class="floor-btn" data-floor="study2">2F: Study Section</button>
+            </div>
+        </div>
+
+        <div class="hud-bar bottom-bar glass-panel">
+            <div class="status-indicator">
+                <span class="status-dot green"></span>
+                <span id="status-text">Exterior Building</span>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button id="music-toggle-btn" class="secondary-btn">🔊 Music On</button>
+                <button id="photo-gallery-btn" class="secondary-btn">📷 Reference Photos</button>
+            </div>
+        </div>
+    </div>
+
+    <audio id="bg-music" src="assets/Music.mp3" loop preload="auto"></audio>
+
+    <div id="crosshair" class="hidden"></div>
+    <div id="interact-prompt" class="hidden">Left Click to interact</div>
+
+    <div id="info-modal" class="modal hidden">
+        <div class="modal-content glass-panel">
+            <button id="modal-close" class="close-btn">&times;</button>
+            <div id="modal-body">
+            </div>
+        </div>
+    </div>
+
+    <div id="photos-modal" class="modal hidden">
+        <div class="modal-content glass-panel photos-content">
+            <button id="photos-close" class="close-btn">&times;</button>
+            <h2>Reference Photo Evidence</h2>
+            <p class="modal-intro">Original reference photos captured at Perpustakaan Raja Zarith Sofiah to guide the 3D recreation.</p>
+            <div class="photos-grid">
+                <div class="photo-card">
+                    <img src="assets/reference/exterior%20building.jpg" alt="Photo 1: Exterior Facade" class="reference-img">
+                    <div class="photo-title">Photo 1: Exterior Facade</div>
+                    <p class="photo-caption">Main Building Exterior Facade showing modern glass architectures.</p>
+                </div>
+                <div class="photo-card">
+                    <img src="assets/reference/entrance%20building.png" alt="Photo 2: Entrance Facade" class="reference-img">
+                    <div class="photo-title">Photo 2: Entrance Facade</div>
+                    <p class="photo-caption">Close up of the entrance facade showing concrete canopy structures.</p>
+                </div>
+                <div class="photo-card">
+                    <img src="assets/reference/entrance%20door.png" alt="Photo 3: Entrance Doors" class="reference-img">
+                    <div class="photo-title">Photo 3: Entrance Doors</div>
+                    <p class="photo-caption">Double glass doors acting as the entrance to the library lobby.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="loading-screen" class="hidden">
+        <div class="loader-content">
+            <div class="spinner"></div>
+            <h2>Downloading 3D Environment...</h2>
+            <p id="loading-progress">0% loaded</p>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>
